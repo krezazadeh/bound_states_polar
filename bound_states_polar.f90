@@ -216,7 +216,7 @@ program bound_states_polar
 
         ! Generate random number for omegaI update
         call random_number(rand)
-        omegaI = omegaI_result + delta_omegaI * (2.0d0 * rand - 1.0d0)
+        omegaI = omegaI_result + delta_omegaI*(2.0q0*rand - 1.0q0)
         omegaI = max(omegaI_min, min(omegaI, omegaI_max))
 
         ! Perform your custom process (function)
@@ -263,9 +263,13 @@ program bound_states_polar
         ! Broadcast the best omegaI_result to all processes for the next iteration
         call MPI_BCAST(omegaI_result, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
 
+        call MPI_BCAST(delta_omegaI, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
+
         ! call MPI_BCAST(n_try, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
     end do
+
+    call MPI_Barrier(MPI_COMM_WORLD, ierr)
 
     if (rank == 0) then
 
@@ -280,6 +284,8 @@ program bound_states_polar
         call store_rZmZpW()
 
     end if ! (rank == 0)
+
+    call MPI_Barrier(MPI_COMM_WORLD, ierr)
 
     deallocate(omegaI_process)
     deallocate(fomegaI_process)
@@ -729,9 +735,9 @@ subroutine store_omegaI()
 
     open(unit=11, file="omegaI.txt", status='replace')
 
-    write(unit, "(3e25.16)") omegaI, f_omegaI, delta_omegaI
+    write(11, "(3e25.16)") omegaI, f_omegaI, delta_omegaI
 
-    close(unit)
+    close(11)
 
 end subroutine store_omegaI
 
@@ -742,14 +748,14 @@ subroutine store_rZmZpW()
     open(unit=11, file="rZmZpW.txt", status='replace')
 
     do i = 1, n_array
-        write(unit, "(8e25.16)") array_rm(i), &
+        write(11, "(8e25.16)") array_rm(i), &
         real(array_Zm(i)), aimag(array_Zm(i)), &
         real(array_Zp(i)), aimag(array_Zp(i)), &
         real(array_W(i)), aimag(array_W(i)), &
         array_absW(i)
     end do
 
-    close(unit)
+    close(11)
 
 end subroutine store_rZmZpW
 
