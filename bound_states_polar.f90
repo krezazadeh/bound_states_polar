@@ -18,7 +18,7 @@
 !       • A Frobenius-type power-series expansion is used near r = 0
 !         to obtain initial boundary conditions (c_series).
 !       • The wavefunction is defined as
-!         Z(r) = r g(r) / [ e^{i omega r} (r - 1)^{i omega} (1.5 + lambda r)^2 ].
+!         Z(r) = r g(r)/[e^{i omega r} (r - 1)^{i omega} (1.5 + lambda r)^2].
 !       • The solutions Zm(r) (integrated outward) and Zp(r)
 !         (integrated inward) are matched via the Wronskian
 !         W = Zm Zp' − Zm' Zp.
@@ -53,6 +53,12 @@
 !  Dependencies:
 !       • Requires an MPI compiler.
 !       • All computations use REAL(16) and COMPLEX(16) quadruple precision.
+!
+!  USAGE:
+!       • Compile with MPI Fortran compiler, e.g.:
+!         mpiifort -O3 bound_states_polar.f90 -o bound_states_polar
+!       • Run with desired number of parallel chains:
+!         mpirun -np 8 ./bound_states_polar
 !
 !  REPOSITORY:
 !       https://github.com/krezazadeh/bound_states_polar
