@@ -203,7 +203,7 @@ program bound_states_polar
     ! namely omegaI_min and omegaI_max.
 
     omegaI_result = omegaI_start
-    ! delta_omegaI_start = 1.0q-4
+    delta_omegaI_start = 1.0q-1
     omegaI_min = omegaI_start - delta_omegaI_start
     omegaI_max = omegaI_start + delta_omegaI_start
     ! delta_omegaI = delta_omegaI_start
