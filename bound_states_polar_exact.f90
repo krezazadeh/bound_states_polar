@@ -116,7 +116,7 @@ program bound_states_polar
     complex(16) :: gi, gpi
     complex(16) :: Zi
 
-    integer, parameter :: n_try_max = 30
+    integer, parameter :: n_try_max = 10
     integer :: n_try
 
     real(16) :: rand
@@ -133,6 +133,8 @@ program bound_states_polar
     real(16), allocatable :: omegaI_process(:), fomegaI_process(:)
 
     logical :: improved
+
+    integer :: power
 
     ! exact results
 
@@ -188,7 +190,7 @@ program bound_states_polar
     ! l = 6.0q0
     ! l = 7.0q0
 
-    omegaI_start = 1.705649855867412886401121336882458301887q0
+    omegaI_start = 1.705q0
 
     LL = l*(l + 1.0q0)
     lambda = ((-1.0q0 + l)*(2.0q0 + l))/2.0q0
@@ -201,10 +203,10 @@ program bound_states_polar
     ! namely omegaI_min and omegaI_max.
 
     omegaI_result = omegaI_start
-    delta_omegaI_start = 1.0q-3
+    ! delta_omegaI_start = 1.0q-4
     omegaI_min = omegaI_start - delta_omegaI_start
     omegaI_max = omegaI_start + delta_omegaI_start
-    delta_omegaI = delta_omegaI_start
+    ! delta_omegaI = delta_omegaI_start
 
     ! omegaI_result_old = omegaI_result
 
@@ -213,7 +215,7 @@ program bound_states_polar
     f_omegaI_result = fomegaI()
 
     ! print *, omegaI_result, f_omegaI_result, delta_omegaI
-    write(*, "(3(1x,es42.34))") omegaI_result, f_omegaI_result, delta_omegaI
+    ! write(*, "(3(1x,es42.34))") omegaI_result, f_omegaI_result, delta_omegaI
 
     ! examine only one omegaI
 
@@ -225,11 +227,17 @@ program bound_states_polar
 
     ! Random-walk minimization
 
-    n_try = 1
+    if (rank == 0) n_try = 1
 
-    do while(n_try < n_try_max)
+    ! do while(n_try < n_try_max)
 
     ! do while(delta_omegaI > delta_omegaI_tol)
+
+    power = 1
+
+    do while(power <= 32)
+
+        delta_omegaI = 1.0q0/10.0**power
 
         ! Generate random number for omegaI update
         call random_number(rand)
@@ -269,8 +277,13 @@ program bound_states_polar
                 n_try = n_try + 1
             end if
 
-            delta_omegaI = abs(maxval(omegaI_process(1:nprocess)) - &
-            minval(omegaI_process(1:nprocess)))
+            ! delta_omegaI = abs(maxval(omegaI_process(1:nprocess)) - &
+            ! minval(omegaI_process(1:nprocess)))
+
+            if (n_try >= n_try_max) then
+                power = power + 1
+                n_try = 1
+            end if
 
             ! Print current try and best results
             ! print *, omegaI_result, f_omegaI_result, delta_omegaI
@@ -283,9 +296,11 @@ program bound_states_polar
         ! Broadcast the best omegaI_result to all processes for the next iteration
         call MPI_BCAST(omegaI_result, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
 
-        call MPI_BCAST(n_try, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        ! call MPI_BCAST(n_try, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
-        call MPI_BCAST(delta_omegaI, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
+        ! call MPI_BCAST(delta_omegaI, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
+
+        call MPI_BCAST(power, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
     end do
 
