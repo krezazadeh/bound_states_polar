@@ -93,7 +93,8 @@ program bound_states_polar
     integer :: i, j
     real(16) :: i_real
 
-    real(16) :: l, omegaI, LL, lambda
+    real(16) :: l
+    real(16) :: omegaI, LL, lambda
     complex(16) :: omega
     real(16) :: rbc1, rbc2, dr
     real(16) :: C1
@@ -128,13 +129,11 @@ program bound_states_polar
     real(16) :: f_omegaI, f_omegaI_result
 
     ! real(16), parameter :: delta_omegaI_tol = 1.0q-10
-    ! real(16) :: omegaI_result_old
+    real(16) :: omegaI_result_old
     
     real(16), allocatable :: omegaI_process(:), fomegaI_process(:)
 
     logical :: improved
-
-    integer :: power
 
     ! exact results
 
@@ -184,13 +183,13 @@ program bound_states_polar
     call random_seed()
 
     ! l = 2.0q0
-    ! l = 3.0q0
+    l = 3.0q0
     ! l = 4.0q0
-    l = 5.0q0
+    ! l = 5.0q0
     ! l = 6.0q0
     ! l = 7.0q0
 
-    omegaI_start = 13.767q0
+    omegaI_start = 1.7056q0
 
     LL = l*(l + 1.0q0)
     lambda = ((-1.0q0 + l)*(2.0q0 + l))/2.0q0
@@ -203,19 +202,18 @@ program bound_states_polar
     ! namely omegaI_min and omegaI_max.
 
     omegaI_result = omegaI_start
-    delta_omegaI_start = 1.0q-1
+    delta_omegaI_start = 1.0q-4
     omegaI_min = omegaI_start - delta_omegaI_start
     omegaI_max = omegaI_start + delta_omegaI_start
-    ! delta_omegaI = delta_omegaI_start
-
-    ! omegaI_result_old = omegaI_result
+    delta_omegaI = delta_omegaI_start
+    omegaI_result_old = omegaI_result
 
     omegaI = omegaI_result
     call process()
     f_omegaI_result = fomegaI()
 
     ! print *, omegaI_result, f_omegaI_result, delta_omegaI
-    ! write(*, "(3(1x,es42.34))") omegaI_result, f_omegaI_result, delta_omegaI
+    write(*, "(3(1x,es42.34))") omegaI_result, f_omegaI_result, delta_omegaI
 
     ! examine only one omegaI
 
@@ -227,17 +225,11 @@ program bound_states_polar
 
     ! Random-walk minimization
 
-    if (rank == 0) n_try = 1
+    n_try = 1
 
-    ! do while(n_try < n_try_max)
+    do while(n_try < n_try_max)
 
     ! do while(delta_omegaI > delta_omegaI_tol)
-
-    power = 1
-
-    do while(power <= 32)
-
-        delta_omegaI = 1.0q0/10.0**power
 
         ! Generate random number for omegaI update
         call random_number(rand)
@@ -264,9 +256,9 @@ program bound_states_polar
                     improved = .true.
                     omegaI_result = omegaI_process(j)
                     f_omegaI_result = fomegaI_process(j)
-                    ! delta_omegaI = min(delta_omegaI_start, &
-                    ! 10.0q0*abs(omegaI_result - omegaI_result_old))
-                    ! omegaI_result_old = omegaI_result
+                    delta_omegaI = min(delta_omegaI_start, &
+                    10.0q0*abs(omegaI_result - omegaI_result_old))
+                    omegaI_result_old = omegaI_result
                 end if
             end do
 
@@ -280,11 +272,6 @@ program bound_states_polar
             ! delta_omegaI = abs(maxval(omegaI_process(1:nprocess)) - &
             ! minval(omegaI_process(1:nprocess)))
 
-            if (n_try >= n_try_max) then
-                power = power + 1
-                n_try = 1
-            end if
-
             ! Print current try and best results
             ! print *, omegaI_result, f_omegaI_result, delta_omegaI
             write(*, "(3(1x,es42.34))") omegaI_result, f_omegaI_result, delta_omegaI
@@ -296,11 +283,9 @@ program bound_states_polar
         ! Broadcast the best omegaI_result to all processes for the next iteration
         call MPI_BCAST(omegaI_result, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
 
-        ! call MPI_BCAST(n_try, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(n_try, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
-        ! call MPI_BCAST(delta_omegaI, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
-
-        call MPI_BCAST(power, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(delta_omegaI, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
 
     end do
 
@@ -509,12 +494,6 @@ subroutine compute_Zm()
 
     ! normalization
 
-    ! CC = maxval(abs(array_Zm(1:n_array)))
-
-    ! do i = 1, n_array
-    !     array_Zm(i) = array_Zm(i)/CC
-    ! end do
-
     ! trapezoidal rule integraration
 
     ! CC = (abs(array_Zm(1))**2 + abs(array_Zm(n_array))**2)/2.0q0
@@ -646,27 +625,21 @@ subroutine compute_Zp()
 
     ! normalization
 
-    ! CC = maxval(abs(array_Zp(1:n_array)))
-
-    ! do i = 1, n_array
-    !     array_Zp(i) = array_Zp(i)/CC
-    ! end do
-
     ! trapezoidal rule integraration
 
     ! CC = (abs(array_Zp(1))**2 + abs(array_Zp(n_array))**2)/2.0q0
 
     ! do i = 2, n_array - 1
-    !     CC = CC + abs(array_Zp(i))**2
+    ! CC = CC + abs(array_Zp(i))**2
     ! end do
 
     ! CC = CC*abs(dr)
 
     ! do i = 1, n_array
-    !     array_Zp(i) = array_Zp(i)/sqrt(CC)
+    ! array_Zp(i) = array_Zp(i)/sqrt(CC)
     ! end do
 
-    ! ! test normalization
+    ! test normalization
     
     ! CC = 0.0q0
 
@@ -797,7 +770,6 @@ end subroutine store_rZmZpW
 function fomegaI()
 
     real(16) :: fomegaI
-
     integer :: i
 
     fomegaI = minval(array_absW(1:n_array))
