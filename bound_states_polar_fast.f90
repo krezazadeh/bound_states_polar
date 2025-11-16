@@ -126,12 +126,15 @@ program bound_states_polar
     real(16) :: omegaI_result, omegaI_min, omegaI_max
     real(16) :: delta_omegaI, delta_omegaI_start
     real(16) :: max_absW, max_absW_result
-    real(16) :: f_omegaI, f_omegaI_result
+    ! real(16) :: f_omegaI, f_omegaI_result
+    real(16) :: f_omegaI1, f_omegaI1_result
+    real(16) :: f_omegaI2, f_omegaI2_result
 
     ! real(16), parameter :: delta_omegaI_tol = 1.0q-10
     real(16) :: omegaI_result_old
     
-    real(16), allocatable :: omegaI_process(:), fomegaI_process(:)
+    ! real(16), allocatable :: omegaI_process(:), fomegaI_process(:)
+    real(16), allocatable :: omegaI_process(:), fomegaI1_process(:), fomegaI2_process(:)
 
     logical :: improved
 
@@ -178,18 +181,20 @@ program bound_states_polar
     call MPI_Comm_size(MPI_COMM_WORLD, nprocess, ierr)
 
     allocate(omegaI_process(nprocess))
-    allocate(fomegaI_process(nprocess))
+    ! allocate(fomegaI_process(nprocess))
+    allocate(fomegaI1_process(nprocess))
+    allocate(fomegaI2_process(nprocess))
 
     call random_seed()
 
     ! l = 2.0q0
-    l = 3.0q0
+    ! l = 3.0q0
     ! l = 4.0q0
-    ! l = 5.0q0
+    l = 5.0q0
     ! l = 6.0q0
     ! l = 7.0q0
 
-    omegaI_start = 1.7056q0
+    omegaI_start = 1.274q0
 
     LL = l*(l + 1.0q0)
     lambda = ((-1.0q0 + l)*(2.0q0 + l))/2.0q0
@@ -202,7 +207,7 @@ program bound_states_polar
     ! namely omegaI_min and omegaI_max.
 
     omegaI_result = omegaI_start
-    delta_omegaI_start = 1.0q-4
+    delta_omegaI_start = 1.0q-3
     omegaI_min = omegaI_start - delta_omegaI_start
     omegaI_max = omegaI_start + delta_omegaI_start
     delta_omegaI = delta_omegaI_start
@@ -210,10 +215,13 @@ program bound_states_polar
 
     omegaI = omegaI_result
     call process()
-    f_omegaI_result = fomegaI()
+    ! f_omegaI_result = fomegaI()
+    f_omegaI1_result = fomegaI1()
+    f_omegaI2_result = fomegaI2()
 
     ! print *, omegaI_result, f_omegaI_result, delta_omegaI
-    write(*, "(3(1x,es42.34))") omegaI_result, f_omegaI_result, delta_omegaI
+    ! write(*, "(3(1x,es42.34))") omegaI_result, f_omegaI_result, delta_omegaI
+    write(*, "(4(1x,es42.34))") omegaI_result, f_omegaI1_result, f_omegaI2_result, delta_omegaI
 
     ! examine only one omegaI
 
@@ -238,7 +246,9 @@ program bound_states_polar
 
         ! Perform your custom process (function)
         call process()
-        f_omegaI = fomegaI()
+        ! f_omegaI = fomegaI()
+        f_omegaI1 = fomegaI1()
+        f_omegaI2 = fomegaI2()
 
         ! print *, omegaI_result, f_omegaI_result, delta_omegaI
 
@@ -246,16 +256,20 @@ program bound_states_polar
 
         ! Gather omegaI and f_omegaI values from all processes
         call MPI_GATHER(omegaI, 1, MPI_REAL16, omegaI_process, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
-        call MPI_GATHER(f_omegaI, 1, MPI_REAL16, fomegaI_process, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
+        ! call MPI_GATHER(f_omegaI, 1, MPI_REAL16, fomegaI_process, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
+        call MPI_GATHER(f_omegaI1, 1, MPI_REAL16, fomegaI1_process, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
+        call MPI_GATHER(f_omegaI2, 1, MPI_REAL16, fomegaI2_process, 1, MPI_REAL16, 0, MPI_COMM_WORLD, ierr)
 
         ! Root process compares the gathered results
         if (rank == 0) then
             improved = .false.
             do j = 1, nprocess
-                if (fomegaI_process(j) < f_omegaI_result) then
+                if ((fomegaI1_process(j) < f_omegaI1_result) .and. (fomegaI2_process(j) < f_omegaI2_result)) then
                     improved = .true.
                     omegaI_result = omegaI_process(j)
-                    f_omegaI_result = fomegaI_process(j)
+                    ! f_omegaI_result = fomegaI_process(j)
+                    f_omegaI1_result = fomegaI1_process(j)
+                    f_omegaI2_result = fomegaI2_process(j)
                     delta_omegaI = min(delta_omegaI_start, &
                     10.0q0*abs(omegaI_result - omegaI_result_old))
                     omegaI_result_old = omegaI_result
@@ -274,7 +288,8 @@ program bound_states_polar
 
             ! Print current try and best results
             ! print *, omegaI_result, f_omegaI_result, delta_omegaI
-            write(*, "(3(1x,es42.34))") omegaI_result, f_omegaI_result, delta_omegaI
+            ! write(*, "(3(1x,es42.34))") omegaI_result, f_omegaI_result, delta_omegaI
+            write(*, "(4(1x,es42.34))") omegaI_result, f_omegaI1_result, f_omegaI2_result, delta_omegaI
 
         end if ! (rank == 0)
 
@@ -297,7 +312,9 @@ program bound_states_polar
 
         call process()
 
-        f_omegaI = fomegaI()
+        ! f_omegaI = fomegaI()
+        f_omegaI1 = fomegaI1()
+        f_omegaI2 = fomegaI2()
 
         call store_omegaI()
 
@@ -308,7 +325,9 @@ program bound_states_polar
     call MPI_Barrier(MPI_COMM_WORLD, ierr)
 
     deallocate(omegaI_process)
-    deallocate(fomegaI_process)
+    ! deallocate(fomegaI_process)
+    deallocate(fomegaI1_process)
+    deallocate(fomegaI2_process)
 
     ! stop
 
@@ -743,7 +762,8 @@ subroutine store_omegaI()
 
     open(unit=11, file="omegaI.txt", status='replace')
 
-    write(11, "(3e42.32)") omegaI, f_omegaI, delta_omegaI
+    ! write(11, "(3e42.32)") omegaI, f_omegaI, delta_omegaI
+    write(11, "(4e42.32)") omegaI, f_omegaI1, f_omegaI2, delta_omegaI
 
     close(11)
 
@@ -770,13 +790,28 @@ end subroutine store_rZmZpW
 function fomegaI()
 
     real(16) :: fomegaI
-    integer :: i
 
     fomegaI = minval(array_absW(1:n_array))
 
     ! fomegaI = sum(array_absW(1:n_array))/real(n_array, 16)
 
 end function fomegaI
+
+function fomegaI1()
+
+    real(16) :: fomegaI1
+
+    fomegaI1 = minval(array_absW(1:n_array))
+
+end function fomegaI1
+
+function fomegaI2()
+
+    real(16) :: fomegaI2
+
+    fomegaI2 = sum(array_absW(1:n_array))/real(n_array, 16)
+
+end function fomegaI2
 
 subroutine RK8()
 
