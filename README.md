@@ -45,7 +45,9 @@ This approach provides nearly linear speedup with the number of MPI processes.
 
 ## File Structure
 
-bound_states_polar.f90: Main Fortran MPI program
+bound_states_polar_fast.f90: Fast version of the code
+
+bound_states_polar_exact.f90: Exact version of the code
 
 README.txt: This file
 
