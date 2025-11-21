@@ -838,6 +838,8 @@ function fomegaI2()
 
     fomegaI2 = sum(array_absW(1:n_array))/real(n_array, 16)
 
+    if (isnan(fomegaI2)) fomegaI2 = fomegaI1()
+
 end function fomegaI2
 
 subroutine RK8()
