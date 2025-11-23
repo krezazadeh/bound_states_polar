@@ -64,7 +64,7 @@
 !       https://github.com/krezazadeh/bound_states_polar
 !
 !  REFERENCE:
-!       https://www.arxiv.org/abs/????.?????
+!       https://arxiv.org/abs/2511.15140
 !
 !  AUTHOR:
 !       Kazem Rezazadeh
